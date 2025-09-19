@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>進制轉換器｜Base Converter (2–62, 含小數)</title>
+  <title>進制轉換器｜Base Converter (2–62，含小數)</title>
   <style>
     :root { --bg:#0b1020; --panel:#111726; --muted:#9fb4d7; --text:#eef3fb; --error:#ff6b6b; }
     * { box-sizing: border-box; }
@@ -17,10 +17,16 @@
       background:#0e1526; border:1px solid rgba(124,193,255,.35); color: var(--text); font-size: 15px;
     }
     input::placeholder { color:#a9bddf; }
-    .row { display:grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: end; margin-top:10px; }
+    .row {
+      display:grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px;
+      align-items: end;
+      margin-top:10px;
+    }
     @media (max-width: 540px){
       .row { grid-template-columns: 1fr 1fr; }
-      .swapcell { grid-column: 1 / -1; }
+      .row .swapcell { grid-column: 1 / -1; }
     }
     .muted { color: var(--muted); font-size: 13px; margin-top:6px; }
     .alert { color: var(--error); min-height: 1.2em; margin-top: 8px; }
@@ -41,13 +47,13 @@
 </head>
 <body>
   <main class="wrap">
-    <h1>進制轉換器（2–62，支援小數）</h1>
+    <h1>進制轉換器（2–62，含小數）</h1>
 
-    <!-- 工具區 -->
+    <!-- 工具區（依你給的介面：數值 + x / y + 交換鍵） -->
     <section class="card" aria-labelledby="tool-title">
-      <label for="val" id="tool-title">數值（x 進位，支援小數點 .）</label>
-      <input id="val" type="text" placeholder="例：-1a7_f0.3B 或 1011.011" autocomplete="off" spellcheck="false">
-      <div class="muted">允許字元：0–9 a–z A–Z（<strong>大小寫有別</strong>）；可用 <code>+</code>/<code>-</code> 與底線 <code>_</code> 分隔；小數點使用 <code>.</code>。</div>
+      <label for="val" id="tool-title">數值（x 進位）</label>
+      <input id="val" type="text" placeholder="例：-1a7.f0 或 1011.01" autocomplete="off" spellcheck="false">
+      <div class="muted">允許字元：0–9 a–z A–Z（<strong>大小寫有別</strong>），小數點用 <code>.</code>；可使用 <code>+</code>/<code>-</code> 與底線 <code>_</code> 分隔（不影響數值）。</div>
 
       <div class="row">
         <div>
@@ -65,12 +71,6 @@
         </div>
       </div>
 
-      <div style="margin-top:10px;">
-        <label for="prec">輸出小數位數（0–64）</label>
-        <input id="prec" type="number" min="0" max="64" value="32" inputmode="numeric">
-        <div class="muted">若為循環小數，將以括號標示循環段（例如 <code>0.(3)</code>）。若在精度內尚未遇到循環，將以截斷方式顯示。</div>
-      </div>
-
       <div id="alert" class="alert" aria-live="polite"></div>
 
       <div class="result">
@@ -84,10 +84,11 @@
       <details open>
         <summary>使用說明</summary>
         <ul>
-          <li>在「數值」輸入 <strong>x 進位數</strong>，可包含小數點 <code>.</code> 與 <code>+</code>/<code>-</code>、底線 <code>_</code>（底線只做分隔）。</li>
-          <li>設定「x」與「y」為 2–62 的整數。字元集：<code>0-9 a-z A-Z</code>（<code>a</code>=10 … <code>z</code>=35，<code>A</code>=36 … <code>Z</code>=61）。</li>
-          <li>小數轉換：以分數 <code>p/q</code>（<code>q = x^k</code>）計算；輸出時以「乘基取整」產生 y 進位小數，遇到重複餘數則以括號標出循環段。</li>
-          <li>「輸出小數位數」限制最長輸出長度；若你想完整看到循環，建議設稍大（例如 32）。</li>
+          <li>在「數值」輸入 <strong>x 進位數</strong>，可含小數點 <code>.</code>、<code>+</code>/<code>-</code>、底線 <code>_</code> 分隔。</li>
+          <li>設定來源進位 x 與目標進位 y（2–62）。欄位變動會<strong>即時轉換</strong>；點擊 <em>↔ 交換 x / y</em> 可交換並立即重算。</li>
+          <li>字元集：<code>0-9 a-z A-Z</code>；其中 <code>a</code>=10 … <code>z</code>=35，<code>A</code>=36 … <code>Z</code>=61（大小寫有別）。</li>
+          <li>小數輸出最多 32 位；若為無限循環，會以括號表示循環段（例如 <code>0.(3)</code>），若超過長度則以 <code>…</code> 截斷。</li>
+          <li>演算法：將小數解析為分數（分子/分母）並約分；整數部用除基取餘，小數部以長除法輸出並偵測循環。</li>
         </ul>
       </details>
     </section>
@@ -96,118 +97,151 @@
   <script>
     (function(){
       "use strict";
-      // 字元表：0-9 a-z A-Z
+      // ===== 可調參數 =====
+      const MAX_FRAC = 32;        // 最大小數位數
+      const SHOW_REPEAT = true;   // 顯示循環括號
+
+      // 字元集與映射
       const DIGITS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
       const charToVal = new Map([...DIGITS].map((c,i)=>[c,i]));
 
-      const $ = (id)=>document.getElementById(id);
-      const $val = $("val"), $from = $("from"), $to = $("to"), $prec = $("prec"),
+      // 小工具
+      const $ = id => document.getElementById(id);
+      const $val = $("val"), $from = $("from"), $to = $("to"),
             $out = $("out"), $alert = $("alert"), $swap = $("swap");
 
+      const abs = x => (x < 0n ? -x : x);
+      function gcd(a,b){ a=abs(a); b=abs(b); while(b){ const t=a%b; a=b; b=t; } return a||1n; }
       function sanitize(s){ return s.trim().replace(/\s+/g,"").replace(/_/g,""); }
 
-      function validateDigits(s, base){
-        for(let i=0;i<s.length;i++){
-          const ch = s[i];
-          if(!charToVal.has(ch)) return {ok:false, msg:`不支援的字元「${ch}」`};
-          const v = charToVal.get(ch);
-          if(v >= base) return {ok:false, msg:`字元「${ch}」超過基數 ${base} 的範圍`};
-        }
-        return {ok:true};
-      }
-
-      // 將字串（不含符號與小數點）轉為 BigInt（以 base 解析）
-      function parseIntPart(str, base){
-        if(str.length === 0) return 0n;
-        const b = BigInt(base);
-        let acc = 0n;
-        for(let i=0;i<str.length;i++){
-          const d = BigInt(charToVal.get(str[i]));
-          acc = acc * b + d;
-        }
-        return acc;
-      }
-
-      // 解析含小數：回傳分數 num/den（BigInt）
-      function parseToFraction(raw, base){
-        if(!(base>=2 && base<=62)) throw new Error("基數必須介於 2 到 62");
+      function splitNumber(raw){
         if(!raw) throw new Error("請輸入數值");
-
-        // 處理符號
+        let s = sanitize(raw);
         let sign = 1n;
-        let s = raw;
         if(s[0]==="+") s = s.slice(1);
         else if(s[0]==="-"){ sign = -1n; s = s.slice(1); }
-        s = sanitize(s);
-
-        // 只能有一個小數點
-        const parts = s.split(".");
-        if(parts.length > 2) throw new Error("發現多個小數點 .");
-
-        const intStr = parts[0] || "";
-        const fracStr = parts[1] || "";
-
-        // 檢查字元
-        const v1 = validateDigits(intStr, base);
-        if(!v1.ok) throw new Error(v1.msg);
-        const v2 = validateDigits(fracStr, base);
-        if(!v2.ok) throw new Error(v2.msg);
-
-        // 整數部分
-        const Nint = parseIntPart(intStr, base);
-
-        // 小數部分，長度 k，分母 base^k，分子為以 base 解析的整數
-        let Nfrac = 0n, Q = 1n;
-        const b = BigInt(base);
-        if(fracStr.length > 0){
-          // 分子：當作整數解析
-          Nfrac = parseIntPart(fracStr, base);
-          // 分母：b^k
-          Q = b ** BigInt(fracStr.length);
-        }
-        // 合併： (Nint * Q + Nfrac) / Q
-        let num = Nint * Q + Nfrac;
-        let den = Q;
-        if(sign < 0n) num = -num;
-        return { num, den };
+        if(s.split(".").length > 2) throw new Error("格式錯誤：小數點只能有一個");
+        let [intStr="", fracStr=""] = s.split(".");
+        if(intStr === "" && fracStr === "") throw new Error("請輸入有效的數字");
+        return { sign, intStr, fracStr };
       }
 
-      // 將分數 num/den 轉成 y 進位字串，帶小數（循環用括號），precision 為最大小數位
-      function fractionToBase(num, den, base, precision){
+      function validatePart(part, base){
+        for(let i=0;i<part.length;i++){
+          const ch = part[i];
+          if(!charToVal.has(ch)) return `不支援的字元「${ch}」`;
+          const v = charToVal.get(ch);
+          if(v >= base) return `字元「${ch}」超過基數 ${base} 的範圍`;
+        }
+        return null;
+      }
+
+      // 解析為 num/den（BigInt）
+      function parseRational(raw, base){
         if(!(base>=2 && base<=62)) throw new Error("基數必須介於 2 到 62");
-        if(den === 0n) throw new Error("分母不可為 0");
+        const { sign, intStr, fracStr } = splitNumber(raw);
+        const v1 = validatePart(intStr, base); if(v1) throw new Error(v1);
+        const v2 = validatePart(fracStr, base); if(v2) throw new Error(v2);
+
+        const b = BigInt(base);
+        // 整數部
+        let intVal = 0n;
+        for(let i=0;i<intStr.length;i++){
+          intVal = intVal * b + BigInt(charToVal.get(intStr[i]));
+        }
+        // 小數部 → 分數
+        let fracNum = 0n, fracDen = 1n;
+        for(let i=0;i<fracStr.length;i++){
+          fracNum = fracNum * b + BigInt(charToVal.get(fracStr[i]));
+          fracDen = fracDen * b;
+        }
+        let num = sign * (intVal * fracDen + fracNum);
+        let den = fracDen || 1n;
+
+        const g = gcd(num, den);
+        return { num: num / g, den: den / g };
+      }
+
+      // num/den 轉為 base 表示字串（含循環偵測與截斷）
+      function toBaseString(num, den, base){
+        if(!(base>=2 && base<=62)) throw new Error("基數必須介於 2 到 62");
+        const signStr = (num < 0n) ? "-" : "";
+        let n = abs(num), d = den, r = n % d;
         const b = BigInt(base);
 
-        let sign = "";
-        if(num < 0n){ sign = "-"; num = -num; }
-
-        // 整數部分
-        const intPart = num / den;
-        let rem = num % den;
-        const intStr = bigIntToBase(intPart, base);
-
-        if(rem === 0n || precision === 0) return sign + intStr;
-
-        // 小數部分：乘基取整 + 餘數循環偵測
-        const seen = new Map(); // remainder -> index
-        let digits = [];
-        let idx = 0;
-        while(rem !== 0n && idx < precision){
-          if(seen.has(rem)){
-            const pos = seen.get(rem);
-            const head = digits.slice(0, pos).join("");
-            const cycle = digits.slice(pos).join("");
-            return sign + intStr + "." + head + "(" + cycle + ")";
+        // 整數部
+        let intQ = n / d;
+        const intDigits = [];
+        if(intQ === 0n) intDigits.push("0");
+        else {
+          while(intQ > 0n){
+            intDigits.push(DIGITS[Number(intQ % b)]);
+            intQ = intQ / b;
           }
-          seen.set(rem, idx);
-          rem = rem * b;
-          const d = Number(rem / den);     // 0..base-1
-          rem = rem % den;
-          digits.push(DIGITS[d]);
+          intDigits.reverse();
+        }
+
+        // 小數部
+        if(r === 0n) return signStr + intDigits.join("");
+
+        let frac = "";
+        const seen = new Map(); // remainder(str) -> index
+        let idx = 0, repeatStart = -1;
+
+        while(r !== 0n && frac.length < MAX_FRAC){
+          if(SHOW_REPEAT){
+            const key = r.toString();
+            if(seen.has(key)){ repeatStart = seen.get(key); break; }
+            seen.set(key, idx);
+          }
+          r = r * b;
+          const digit = Number(r / d);
+          r = r % d;
+          frac += DIGITS[digit];
           idx++;
         }
-        // 若在精度內未歸零，採截斷表示
-        return sign + intStr + "." + digits.join("");
+
+        if(SHOW_REPEAT && r !== 0n && repeatStart >= 0){
+          const a = frac.slice(0, repeatStart);
+          const cyc = frac.slice(repeatStart);
+          return signStr + intDigits.join("") + "." + a + "(" + cyc + ")";
+        }
+        if(r !== 0n && frac.length >= MAX_FRAC){
+          frac += "…"; // 截斷顯示
+        }
+        return signStr + intDigits.join("") + "." + frac;
       }
 
-      // BigInt → 指定進位（整數）
+      function render(){
+        $alert.textContent = "";
+        try{
+          const fromBase = Number($from.value);
+          const toBase = Number($to.value);
+          const { num, den } = parseRational($val.value, fromBase);
+          const out = toBaseString(num, den, toBase);
+          $out.textContent = out;
+        }catch(e){
+          $out.textContent = "—";
+          $alert.textContent = e.message || String(e);
+        }
+      }
+
+      // 交換 x / y 並即時重算
+      $swap.addEventListener("click", ()=>{
+        const a = $from.value;
+        $from.value = $to.value;
+        $to.value = a;
+        render();
+      });
+
+      ["input","change","keyup"].forEach(ev=>{
+        $val.addEventListener(ev, render);
+        $from.addEventListener(ev, render);
+        $to.addEventListener(ev, render);
+      });
+
+      render(); // 初始渲染
+    })();
+  </script>
+</body>
+</html>
