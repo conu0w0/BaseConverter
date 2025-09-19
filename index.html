@@ -18,11 +18,7 @@
     }
     input::placeholder { color:#a9bddf; }
     .row {
-      display:grid;
-      grid-template-columns: 1fr auto 1fr;
-      gap: 10px;
-      align-items: end;
-      margin-top:10px;
+      display:grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: end; margin-top:10px;
     }
     @media (max-width: 540px){
       .row { grid-template-columns: 1fr 1fr; }
@@ -39,6 +35,16 @@
       border: 1px dashed rgba(124,193,255,.6);
     }
     .swapbtn:hover { border-style: solid; }
+    /* 快速基底按鈕 */
+    .quick { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+    .chip {
+      display:inline-flex; align-items:center; justify-content:center;
+      padding: 6px 10px; border-radius: 999px; cursor: pointer;
+      background: #0e1526; color: var(--text); border:1px solid rgba(124,193,255,.35);
+      font-size: 13px; line-height: 1;
+    }
+    .chip:hover { border-color: rgba(124,193,255,.7); }
+    .chip.active { outline: 2px solid rgba(124,193,255,.8); }
     details { margin-top: 10px; }
     details > summary { cursor: pointer; font-weight: 600; }
     ul { margin: 8px 0 0 18px; }
@@ -49,25 +55,43 @@
   <main class="wrap">
     <h1>進制轉換器（2–62，含小數）</h1>
 
-    <!-- 工具區（依你給的介面：數值 + x / y + 交換鍵） -->
+    <!-- 工具區 -->
     <section class="card" aria-labelledby="tool-title">
       <label for="val" id="tool-title">數值（x 進位）</label>
       <input id="val" type="text" placeholder="例：-1a7.f0 或 1011.01" autocomplete="off" spellcheck="false">
-      <div class="muted">允許字元：0–9 a–z A–Z（<strong>大小寫有別</strong>），小數點用 <code>.</code>；可使用 <code>+</code>/<code>-</code> 與底線 <code>_</code> 分隔（不影響數值）。</div>
+      <div class="muted">允許字元：0–9 a–z A–Z（<strong>大小寫有別</strong>），小數點用 <code>.</code>；可使用 <code>+</code>/<code>-</code> 與底線 <code>_</code>。</div>
 
       <div class="row">
         <div>
           <label for="from">x（來源進位）</label>
           <input id="from" type="number" min="2" max="62" value="16" inputmode="numeric">
+          <!-- 常用基底快速鍵：x -->
+          <div class="quick" data-target="from">
+            <button class="chip" type="button" data-base="2">2</button>
+            <button class="chip" type="button" data-base="8">8</button>
+            <button class="chip" type="button" data-base="10">10</button>
+            <button class="chip" type="button" data-base="16">16</button>
+            <button class="chip" type="button" data-base="36">36</button>
+            <button class="chip" type="button" data-base="62">62</button>
+          </div>
         </div>
 
         <div class="swapcell" style="display:flex; align-items:flex-end; justify-content:center;">
-          <button id="swap" class="swapbtn" type="button" title="交換 x 與 y（Swap x and y）">↔ 交換 x / y</button>
+          <button id="swap" class="swapbtn" type="button" title="交換 x 與 y（Alt+S）">↔ 交換 x / y</button>
         </div>
 
         <div>
           <label for="to">y（目標進位）</label>
           <input id="to" type="number" min="2" max="62" value="10" inputmode="numeric">
+          <!-- 常用基底快速鍵：y -->
+          <div class="quick" data-target="to">
+            <button class="chip" type="button" data-base="2">2</button>
+            <button class="chip" type="button" data-base="8">8</button>
+            <button class="chip" type="button" data-base="10">10</button>
+            <button class="chip" type="button" data-base="16">16</button>
+            <button class="chip" type="button" data-base="36">36</button>
+            <button class="chip" type="button" data-base="62">62</button>
+          </div>
         </div>
       </div>
 
@@ -84,11 +108,10 @@
       <details open>
         <summary>使用說明</summary>
         <ul>
-          <li>在「數值」輸入 <strong>x 進位數</strong>，可含小數點 <code>.</code>、<code>+</code>/<code>-</code>、底線 <code>_</code> 分隔。</li>
-          <li>設定來源進位 x 與目標進位 y（2–62）。欄位變動會<strong>即時轉換</strong>；點擊 <em>↔ 交換 x / y</em> 可交換並立即重算。</li>
-          <li>字元集：<code>0-9 a-z A-Z</code>；其中 <code>a</code>=10 … <code>z</code>=35，<code>A</code>=36 … <code>Z</code>=61（大小寫有別）。</li>
-          <li>小數輸出最多 32 位；若為無限循環，會以括號表示循環段（例如 <code>0.(3)</code>），若超過長度則以 <code>…</code> 截斷。</li>
-          <li>演算法：將小數解析為分數（分子/分母）並約分；整數部用除基取餘，小數部以長除法輸出並偵測循環。</li>
+          <li>輸入 x 進位數（可含小數點 <code>.</code>、<code>+</code>/<code>-</code>、底線 <code>_</code>）。</li>
+          <li>選擇 x、y 進位：可直接輸入數字、點下方「常用基底」、或用鍵盤：↑/↓±1、Shift+↑/↓±5、Ctrl/⌘+↑/↓跳到下一個常用基底。</li>
+          <li>按 <em>↔ 交換 x / y</em> 或快捷鍵 <code>Alt+S</code> 可快速交換。</li>
+          <li>字元集 <code>0-9 a-z A-Z</code>；小數以分數精準計算、循環小數自動偵測（超過長度會以 <code>…</code> 截斷）。</li>
         </ul>
       </details>
     </section>
@@ -100,6 +123,7 @@
       // ===== 可調參數 =====
       const MAX_FRAC = 32;        // 最大小數位數
       const SHOW_REPEAT = true;   // 顯示循環括號
+      const QUICK = [2,8,10,16,36,62];
 
       // 字元集與映射
       const DIGITS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -111,6 +135,7 @@
             $out = $("out"), $alert = $("alert"), $swap = $("swap");
 
       const abs = x => (x < 0n ? -x : x);
+      const clamp = (n, lo, hi) => Math.min(Math.max(n, lo), hi);
       function gcd(a,b){ a=abs(a); b=abs(b); while(b){ const t=a%b; a=b; b=t; } return a||1n; }
       function sanitize(s){ return s.trim().replace(/\s+/g,"").replace(/_/g,""); }
 
@@ -224,23 +249,80 @@
           $out.textContent = "—";
           $alert.textContent = e.message || String(e);
         }
+        syncQuickActive();
       }
 
-      // 交換 x / y 並即時重算
+      // ===== 快速基底按鈕 =====
+      function syncQuickActive(){
+        document.querySelectorAll('.quick').forEach(box=>{
+          const target = box.getAttribute('data-target');
+          const val = Number((target === 'from' ? $from.value : $to.value) || 10);
+          box.querySelectorAll('.chip').forEach(ch=>{
+            const b = Number(ch.getAttribute('data-base'));
+            ch.classList.toggle('active', b === val);
+          });
+        });
+      }
+      function bindQuick(box){
+        box.addEventListener('click', (e)=>{
+          const btn = e.target.closest('.chip');
+          if(!btn) return;
+          const base = Number(btn.getAttribute('data-base'));
+          const target = box.getAttribute('data-target');
+          if(target === 'from') $from.value = base; else $to.value = base;
+          render();
+        });
+      }
+      document.querySelectorAll('.quick').forEach(bindQuick);
+
+      // ===== 鍵盤強化：↑/↓、Shift、Ctrl/⌘ 跳常用基底 =====
+      function nextQuick(curr, dir){
+        if(dir > 0){ for(const b of QUICK){ if(b > curr) return b; } return QUICK[QUICK.length-1]; }
+        for(let i=QUICK.length-1;i>=0;i--){ if(QUICK[i] < curr) return QUICK[i]; }
+        return QUICK[0];
+      }
+      function handleBaseKey(ev, el){
+        const v0 = Number(el.value || 10);
+        if(ev.key === 'ArrowUp' || ev.key === 'ArrowDown'){
+          ev.preventDefault();
+          const dir = ev.key === 'ArrowUp' ? 1 : -1;
+          let v = v0;
+          if(ev.ctrlKey || ev.metaKey){
+            v = nextQuick(v0, dir);
+          } else if(ev.shiftKey){
+            v = v0 + dir * 5;
+          } else {
+            v = v0 + dir;
+          }
+          el.value = clamp(v, 2, 62);
+          render();
+        }
+      }
+      $from.addEventListener('keydown', e=>handleBaseKey(e, $from));
+      $to.addEventListener('keydown', e=>handleBaseKey(e, $to));
+
+      // 交換 x / y（按鈕 + Alt+S）
       $swap.addEventListener("click", ()=>{
         const a = $from.value;
         $from.value = $to.value;
         $to.value = a;
         render();
       });
+      document.addEventListener('keydown', (e)=>{
+        if(e.altKey && (e.key.toLowerCase() === 's')){
+          e.preventDefault();
+          $swap.click();
+        }
+      });
 
+      // 變更即時轉換
       ["input","change","keyup"].forEach(ev=>{
         $val.addEventListener(ev, render);
         $from.addEventListener(ev, render);
         $to.addEventListener(ev, render);
       });
 
-      render(); // 初始渲染
+      render(); // 初始
     })();
   </script>
 </body>
