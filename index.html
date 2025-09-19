@@ -5,246 +5,118 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>進制轉換器｜Base Converter (2–62)</title>
   <style>
-    :root { --bg:#0b1020; --panel:#131a2a; --muted:#8892b0; --text:#e6edf7; --accent:#7cc1ff; --error:#ff6b6b; }
+    :root { --bg:#0b1020; --panel:#111726; --muted:#9fb4d7; --text:#eef3fb; --error:#ff6b6b; }
     * { box-sizing: border-box; }
-    body {
-      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji";
-      background: radial-gradient(1200px 800px at 70% -10%, #1d2742 0, rgba(29,39,66,0) 60%), var(--bg);
-      color: var(--text); line-height: 1.6;
+    body { margin:0; font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Noto Sans, Arial; background: var(--bg); color: var(--text); }
+    .wrap { max-width: 760px; margin: 40px auto; padding: 0 16px; }
+    h1 { font-size: 26px; margin: 0 0 14px; }
+    .card { background: var(--panel); border:1px solid rgba(124,193,255,.25); border-radius: 14px; padding: 16px; }
+    label { display:block; font-weight:600; margin-bottom:8px; }
+    input[type="text"], input[type="number"] {
+      width: 100%; padding: 11px 12px; border-radius: 10px;
+      background:#0e1526; border:1px solid rgba(124,193,255,.35); color: var(--text); font-size: 15px;
     }
-    header { padding: 32px 16px 12px; text-align: center; }
-    h1 { margin: 0 0 8px; font-size: 28px; letter-spacing:.5px; }
-    p.sub { margin: 0; color: var(--muted); }
-    main { max-width: 980px; margin: 16px auto 80px; padding: 0 16px; }
-    .card {
-      background: linear-gradient(180deg, rgba(124,193,255,.10), rgba(124,193,255,.04));
-      border: 1px solid rgba(124,193,255,.25);
-      border-radius: 16px; padding: 18px; backdrop-filter: blur(6px);
-      box-shadow: 0 10px 40px rgba(0,0,0,.35);
-    }
-    .grid { display:grid; grid-template-columns: 1fr; gap: 12px; }
-    @media (min-width: 720px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
-    label { display:block; font-weight:600; margin-bottom:6px; }
-    input, select, textarea, button {
-      width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(124,193,255,.35);
-      background: #0f1526; color: var(--text); outline: none; font-size: 15px;
-    }
-    input::placeholder { color: #9fb4d7; }
-    select { cursor:pointer; }
-    .row { display:flex; gap: 10px; align-items: center; }
-    .row > * { flex: 1; }
-    .btn {
-      background: linear-gradient(180deg, #3fa8ff, #2777d8);
-      border: none; font-weight: 700; letter-spacing:.3px; cursor:pointer;
-      transition: transform .06s ease, filter .15s ease;
-    }
-    .btn:hover { filter:brightness(1.05); }
-    .btn:active { transform: scale(.99); }
-    .ghost { background: transparent; border: 1px dashed rgba(124,193,255,.6); }
-    .muted { color: var(--muted); font-size: 14px; }
-    .result {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-      background: #0d1426; border: 1px solid rgba(124,193,255,.35); border-radius: 12px;
-      padding: 12px 14px; word-break: break-all;
-    }
-    .tag { display:inline-block; font-size:12px; padding:4px 8px; border-radius: 999px; border:1px solid rgba(124,193,255,.4); margin-right:6px; color:#cfe6ff;}
-    .error { color: var(--error); }
-    .testcases { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-    .testcases button { flex: 0 0 auto; padding:8px 10px; border-radius:10px; border:1px solid rgba(124,193,255,.35); background:#0f1526; color:var(--text); cursor:pointer; }
-    footer { max-width: 980px; margin: 24px auto 0; padding: 0 16px; color: var(--muted); }
-    code { background: #0f1526; padding: 2px 6px; border-radius: 8px; border:1px solid rgba(124,193,255,.2); }
+    input::placeholder { color:#a9bddf; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .muted { color: var(--muted); font-size: 13px; margin-top:6px; }
+    .alert { color: var(--error); min-height: 1.2em; margin-top: 8px; }
+    .result { margin-top: 14px; }
+    .caption { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .out { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background:#0e1526; border:1px solid rgba(124,193,255,.35); border-radius: 10px; padding: 11px 12px; word-break: break-all; }
   </style>
 </head>
 <body>
-  <header>
+  <main class="wrap">
     <h1>進制轉換器（2–62）</h1>
-    <p class="sub">輸入 x 進位的整數，轉換成 y 進位。支援大數（BigInt）、符號 <code>+</code>/<code>-</code>、以及底線分隔 <code>_</code>。</p>
-  </header>
-  <main>
     <section class="card">
-      <div class="grid grid-2">
+      <label for="val">數值（x 進位）</label>
+      <input id="val" type="text" placeholder="例：1a7_f0 或 101101">
+      <div class="muted">允許字元：0-9 a-z A-Z；可使用 <code>+</code>/<code>-</code> 與底線 <code>_</code> 分隔（不影響數值）。</div>
+      <div class="row" style="margin-top:10px;">
         <div>
-          <label for="inputValue">x進位數值</label>
-          <input id="inputValue" placeholder="例：1a7_f0 或 101101" />
-          <div class="muted">允許字元：0-9 a-z A-Z（大小寫有別；底線 <code>_</code> 僅做分隔，不影響數值）</div>
+          <label for="from">x（來源進位）</label>
+          <input id="from" type="number" min="2" max="62" value="16">
         </div>
-        <div class="grid">
-          <div class="row">
-            <div>
-              <label for="fromBase">x（來源進位）</label>
-              <input id="fromBase" type="number" min="2" max="62" value="16" />
-            </div>
-            <div>
-              <label for="toBase">y（目標進位）</label>
-              <input id="toBase" type="number" min="2" max="62" value="2" />
-            </div>
-          </div>
-          <div class="row">
-            <button class="btn" id="convertBtn">轉換 ▶</button>
-            <button class="ghost" id="copyBtn">複製結果</button>
-          </div>
+        <div>
+          <label for="to">y（目標進位）</label>
+          <input id="to" type="number" min="2" max="62" value="2">
         </div>
       </div>
-      <div id="alert" class="error" style="margin-top:10px;"></div>
-      <div style="margin-top:12px;">
-        <span class="tag">基數範圍：2–62</span>
-        <span class="tag">負數支援</span>
-        <span class="tag">BigInt 精準整數</span>
+      <div id="alert" class="alert" aria-live="polite"></div>
+      <div class="result">
+        <div class="caption">轉換結果</div>
+        <div id="out" class="out">（輸入後即時顯示）</div>
       </div>
-      <div style="margin-top:14px;">
-        <label>轉換結果</label>
-        <div id="result" class="result" aria-live="polite">（等待輸入）</div>
-      </div>
-      <div class="testcases">
-        <button data-val="1a7" data-fb="16" data-tb="2">16→2：1a7</button>
-        <button data-val="110100111" data-fb="2" data-tb="16">2→16：110100111</button>
-        <button data-val="-7fffffff_ffff" data-fb="16" data-tb="36">16→36：-7fffffff_ffff</button>
-        <button data-val="ZZZZZZ" data-fb="62" data-tb="10">62→10：ZZZZZZ</button>
-        <button data-val="1010_0001_1111_0000" data-fb="2" data-tb="16">2→16：群組底線</button>
-      </div>
-    </section>
-
-    <section style="margin-top:18px;" class="card">
-      <h3 style="margin-top:0;">使用說明</h3>
-      <ol>
-        <li>在「x進位數值」輸入框中輸入整數（可包含 <code>+</code>、<code>-</code>、以及底線 <code>_</code> 分隔）。</li>
-        <li>在「x（來源進位）」與「y（目標進位）」填入 2–62 的整數。</li>
-        <li>按下「轉換」即可在下方看到結果；按「複製結果」可複製到剪貼簿。</li>
-      </ol>
-      <p class="muted">小提醒：此版本僅支援<strong>整數</strong>。若需要小數/分數的高精度轉換，可在原始碼中依註解延伸（或告訴我你需要的規格，我可以加上）。</p>
-      <details>
-        <summary>演算法與字元集</summary>
-        <p>字元集（0–61）：<code>0-9 a-z A-Z</code>。其中 <code>a</code>=10，<code>z</code>=35，<code>A</code>=36，<code>Z</code>=61。解析時以 BigInt 逐位乘加；輸出時以 BigInt 不斷除以目標基數取得餘數。</p>
-      </details>
-      <details>
-        <summary>如何引用到你的作業/報告</summary>
-        <p>把這個 HTML 檔案放進你的專案根目錄，或直接部署到 GitHub Pages / Netlify。你也可以把下方「執行結果截圖」加進報告。</p>
-      </details>
-    </section>
-
-    <section style="margin-top:18px;" class="card">
-      <h3 style="margin-top:0;">簡單範例執行結果（載入時自動示範）</h3>
-      <div class="result" id="demoOut"></div>
     </section>
   </main>
-
-  <footer>
-    <p>© 2025 Base Converter. 開源授權 MIT。</p>
-  </footer>
-
   <script>
     (function(){
       "use strict";
-
       const DIGITS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-      const charToVal = new Map([...DIGITS].map((c, i) => [c, i]));
+      const charToVal = new Map([...DIGITS].map((c,i)=>[c,i]));
+      const $ = (id)=>document.getElementById(id);
+      const $val = $("val"), $from = $("from"), $to = $("to"), $out = $("out"), $alert = $("alert");
 
-      function sanitizeInput(str) {
-        return str.trim().replace(/\\s+/g, "").replace(/_/g, "");
-      }
-
-      function validateDigits(str, base) {
-        for (let i = 0; i < str.length; i++) {
-          const ch = str[i];
-          if (!charToVal.has(ch)) return { ok:false, msg:`不支援的字元「${ch}」` };
+      function sanitize(s){ return s.trim().replace(/\s+/g,"").replace(/_/g,""); }
+      function validateDigits(s, base){
+        for(let i=0;i<s.length;i++){
+          const ch = s[i];
+          if(!charToVal.has(ch)) return {ok:false, msg:`不支援的字元「${ch}」`};
           const v = charToVal.get(ch);
-          if (v >= base) return { ok:false, msg:`字元「${ch}」超過基數 ${base} 可表達的範圍` };
+          if(v >= base) return {ok:false, msg:`字元「${ch}」超過基數 ${base} 的範圍`};
         }
-        return { ok:true };
+        return {ok:true};
       }
-
-      function parseToBigInt(raw, base) {
-        if (!raw) throw new Error("請輸入數值");
-        if (!(base >= 2 && base <= 62)) throw new Error("基數必須介於 2 到 62");
-
+      function parseToBigInt(raw, base){
+        if(!(base>=2 && base<=62)) throw new Error("基數必須介於 2 到 62");
+        if(!raw) throw new Error("請輸入數值");
         let sign = 1n;
         let s = raw;
-        if (s[0] === "+") s = s.slice(1);
-        else if (s[0] === "-") { sign = -1n; s = s.slice(1); }
-
-        s = sanitizeInput(s);
-        if (s.length === 0) throw new Error("請輸入有效的數字");
-
-        const valchk = validateDigits(s, base);
-        if (!valchk.ok) throw new Error(valchk.msg);
-
-        let acc = 0n;
-        const b = BigInt(base);
-        for (let i = 0; i < s.length; i++) {
+        if(s[0]==="+") s = s.slice(1);
+        else if(s[0]==="-"){ sign = -1n; s = s.slice(1); }
+        s = sanitize(s);
+        if(s.length===0) throw new Error("請輸入有效的數字");
+        const vchk = validateDigits(s, base);
+        if(!vchk.ok) throw new Error(vchk.msg);
+        let acc = 0n, b = BigInt(base);
+        for(let i=0;i<s.length;i++){
           const d = BigInt(charToVal.get(s[i]));
           acc = acc * b + d;
         }
         return acc * sign;
       }
-
-      function bigIntToBase(n, base) {
-        if (!(base >= 2 && base <= 62)) throw new Error("基數必須介於 2 到 62");
-        if (n === 0n) return "0";
-        let sign = "";
-        if (n < 0) { sign = "-"; n = -n; }
+      function bigIntToBase(n, base){
+        if(!(base>=2 && base<=62)) throw new Error("基數必須介於 2 到 62");
+        if(n===0n) return "0";
+        let sign=""; if(n<0){ sign="-"; n = -n; }
         const b = BigInt(base);
-        let out = "";
-        while (n > 0n) {
+        let out="";
+        while(n>0n){
           const rem = Number(n % b);
           out = DIGITS[rem] + out;
           n = n / b;
         }
         return sign + out;
       }
-
-      function convert() {
-        const input = document.getElementById("inputValue").value;
-        const fromBase = Number(document.getElementById("fromBase").value);
-        const toBase = Number(document.getElementById("toBase").value);
-        const alertBox = document.getElementById("alert");
-        const resultBox = document.getElementById("result");
-        alertBox.textContent = "";
+      function render(){
+        $alert.textContent = "";
         try {
-          const big = parseToBigInt(input, fromBase);
+          const fromBase = Number($from.value);
+          const toBase = Number($to.value);
+          const big = parseToBigInt($val.value, fromBase);
           const out = bigIntToBase(big, toBase);
-          resultBox.textContent = out;
-          return out;
-        } catch (e) {
-          alertBox.textContent = e.message || String(e);
-          resultBox.textContent = "—";
-          return null;
+          $out.textContent = out;
+        } catch(e){
+          $out.textContent = "—";
+          $alert.textContent = e.message || String(e);
         }
       }
-
-      function setTestCase(val, fb, tb) {
-        document.getElementById("inputValue").value = val;
-        document.getElementById("fromBase").value = fb;
-        document.getElementById("toBase").value = tb;
-      }
-
-      // wire up
-      document.getElementById("convertBtn").addEventListener("click", convert);
-      document.getElementById("copyBtn").addEventListener("click", async () => {
-        const txt = document.getElementById("result").textContent || "";
-        try {
-          await navigator.clipboard.writeText(txt);
-          const btn = document.getElementById("copyBtn");
-          const old = btn.textContent;
-          btn.textContent = "已複製 ✓";
-          setTimeout(()=>btn.textContent = old, 900);
-        } catch { /* ignore */ }
+      ["input","change","keyup"].forEach(ev=>{
+        $val.addEventListener(ev, render);
+        $from.addEventListener(ev, render);
+        $to.addEventListener(ev, render);
       });
-
-      // testcase buttons
-      document.querySelectorAll(".testcases button").forEach(btn => {
-        btn.addEventListener("click", () => {
-          setTestCase(btn.dataset.val, btn.dataset.fb, btn.dataset.tb);
-          const out = convert();
-          document.getElementById("demoOut").textContent =
-            `輸入：${btn.dataset.val}（base ${btn.dataset.fb}） → base ${btn.dataset.tb}\n輸出：${out}`;
-        });
-      });
-
-      // initial demo
-      setTestCase("1a7", 16, 2);
-      const demo = convert();
-      document.getElementById("demoOut").textContent =
-        `輸入：1a7（base 16） → base 2\n輸出：${demo}`;
+      render();
     })();
   </script>
 </body>
