@@ -16,13 +16,14 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"N
 h1{font-size:22px;margin:4px 0 12px;text-align:center}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
 .center{text-align:center}
-.modes{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:14px 0}
-.modes button {flex:1 1 30%; min-width:80px;}
-.modes button.wide {flex:1 1 100%;}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.ck-btn {display:block;cursor:pointer;user-select:none;}
+.ck-btn input {display:none;}
+.ck-btn span {display:block;background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:12px;padding:12px;font-size:17px;text-align:center;font-weight:600;transition:all .15s ease;}
+.ck-btn input:checked + span {background:var(--acc);color:#fff;border-color:var(--acc);}
 button{font:inherit;color:inherit}
-.btn{background:var(--acc);color:#fff;border:0;border-radius:12px;padding:12px;font-size:17px;cursor:pointer}
-.btn.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
-.btn.sel{outline:3px solid var(--acc);outline-offset:2px}
+.btn{background:var(--acc);color:#fff;border:0;border-radius:12px;padding:12px;font-size:17px;font-weight:600;cursor:pointer;transition:opacity .2s;}
+.btn:active{opacity:.8}
 .hud{display:flex;justify-content:space-between;font-size:15px;margin-bottom:8px}
 .bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-bottom:10px}
 #fill{height:100%;width:100%;background:var(--acc);transition:background .2s}
@@ -31,10 +32,11 @@ button{font:inherit;color:inherit}
 .hole{position:relative;height:118px;border:0;background:none;padding:0;cursor:pointer;overflow:hidden;border-radius:0 0 40px 40px}
 .mound{position:absolute;left:4%;right:4%;bottom:0;height:34px;background:var(--dirt);border-radius:50%;z-index:3}
 .pit{position:absolute;left:8%;right:8%;bottom:12px;height:26px;background:var(--hole);border-radius:50%;z-index:1}
-.mole{position:absolute;left:50%;bottom:20px;width:92%;transform:translate(-50%,110%);transition:transform .22s ease-out;z-index:2;display:flex;flex-direction:column;align-items:center}
+/* 增加 padding-bottom 讓牌子整體往上提，避免被前方土堆(mound)擋住 */
+.mole{position:absolute;left:50%;bottom:20px;width:92%;padding-bottom:18px;transform:translate(-50%,110%);transition:transform .22s ease-out;z-index:2;display:flex;flex-direction:column;align-items:center}
 .hole.up .mole{transform:translate(-50%,0)}
 .face{font-size:38px;line-height:1}
-.sign{background:var(--board);border:2px solid var(--dirt);border-radius:8px;padding:3px 6px;font-size:clamp(13px,3.6vw,17px);font-weight:600;white-space:nowrap;margin-top:-2px}
+.sign{background:var(--board);border:2px solid var(--dirt);border-radius:8px;padding:4px 8px;font-size:clamp(13px,3.6vw,17px);font-weight:600;white-space:nowrap;margin-top:-4px}
 .hole.ok .sign{border-color:var(--acc);background:var(--acc);color:#fff}
 .hole.no .sign{border-color:var(--bad);background:var(--bad);color:#fff}
 .hole.ok .mole,.hole.no .mole{animation:hit .25s}
@@ -52,13 +54,12 @@ button{font:inherit;color:inherit}
 <h1>🔨 多項式打地鼠</h1>
 
 <div id="start" class="card center">
-  <div class="rules">題目出現後，地鼠會舉著牌子冒出來。<br>只有一隻舉著<b>正確答案</b>，把它敲下去！<br>敲錯或超時會扣一顆愛心，答對越多題目越難。</div>
+  <div class="rules">題目出現後，地鼠會舉著牌子冒出來。<br>只有一隻舉著<b>正確答案</b>，把它敲下去！<br>敲錯或超時會扣心，答對越多題目越難。</div>
   <div class="modes" id="modes">
-    <button class="btn alt" data-m="add">加法 ＋</button>
-    <button class="btn alt" data-m="sub">減法 −</button>
-    <button class="btn alt" data-m="mul">乘法 ×</button>
-    <button class="btn alt" data-m="div">除法 ÷</button>
-    <button class="btn alt sel wide" data-m="mix">全面混合模式 (＋−×÷)</button>
+    <label class="ck-btn"><input type="checkbox" value="add" checked><span>加法 ＋</span></label>
+    <label class="ck-btn"><input type="checkbox" value="sub" checked><span>減法 −</span></label>
+    <label class="ck-btn"><input type="checkbox" value="mul" checked><span>乘法 ×</span></label>
+    <label class="ck-btn"><input type="checkbox" value="div" checked><span>除法 ÷</span></label>
   </div>
   <button class="btn" id="go" style="width:100%">開始遊戲</button>
   <div class="rules center" id="best"></div>
@@ -82,7 +83,7 @@ button{font:inherit;color:inherit}
 <script>
 const $=id=>document.getElementById(id);
 const SUP=['','','²','³'];
-let mode='mix',score=0,combo=0,lives=3,solved=0,locked=true,ans='',tLeft=0,tMax=10,timer=null,best=0,maxCombo=0;
+let activeModes=['add','sub','mul','div'],score=0,combo=0,lives=3,solved=0,locked=true,ans='',tLeft=0,tMax=10,timer=null,best=0,maxCombo=0;
 try{best=+localStorage.getItem('polymole-best')||0}catch(e){}
 function showBest(){$('best').textContent=best?'最高分：'+best:''}
 showBest();
@@ -100,16 +101,14 @@ function mul(a,b){const r=Array(a.length+b.length-1).fill(0);a.forEach((x,i)=>b.
 
 function makeQ(){
   const lvl=Math.floor(solved/4);
-  let op=mode==='mix'?['add','sub','mul','div'][rnd(0,3)]:mode;
+  let op=activeModes[rnd(0,activeModes.length-1)];
   let a,b,res,sym,alt=[];
   
   if(op==='div'){
-    // 反向產生除法：先決定商式(res)跟除式(b)，再乘起來當被除式(a)
     b=poly(1); 
     res=poly(lvl>=3&&Math.random()<.5?2:1);
     a=mul(res,b);
     sym='÷';
-    // 錯誤選項：常數項錯、變號錯
     let w1=res.slice(); w1[0]+=rnd(1,3); alt.push(w1);
     let w2=res.slice(); w2[w2.length-1]*=-1; alt.push(w2);
   }else if(op==='mul'){
@@ -133,7 +132,7 @@ function makeQ(){
     if(m===0)p[i]=-p[i]||rnd(1,4);else if(m===1)p[i]+=rnd(1,3)*(Math.random()<.5?-1:1);else p[i]+=(p[i]>0?-1:1)*rnd(1,9);
     if(!p[p.length-1])continue;tryAdd(p)
   }
-  return{text:`(${fmt(a)}) ${sym} (${fmt(b)})`,right,opts:[right,...wrong]}
+  return{text:`(${fmt(a)}) ${sym} (${fmt(b)})`,right,opts:[right,...wrong],op}
 }
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=rnd(0,i);[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -155,7 +154,21 @@ function nextQ(){
   slots.forEach((s,i)=>{holes[s].querySelector('.sign').textContent=opts[i];holes[s].dataset.v=opts[i];holes[s].dataset.on='1'});
   holes.forEach((h,i)=>{if(!slots.includes(i))delete h.dataset.on});
   setTimeout(()=>slots.forEach(s=>holes[s].classList.add('up')),150);
-  tMax=Math.max(5,12-Math.floor(solved/4)*0.8);tLeft=tMax;locked=false;
+  
+  // 根據不同運算模式設定起始時間(baseT)與最低時間(minT)
+  let baseT = 20, minT = 10; // 預設為加減法 (add, sub)
+  if (q.op === 'mul') {
+    baseT = 30; minT = 20;   // 乘法
+  } else if (q.op === 'div') {
+    baseT = 60; minT = 40;   // 除法
+  }
+
+  // solved 為目前答對題數。
+  // 讓時間隨著題數平滑遞減，公式確保在答對 15 題時，剛好降到最低秒數 (minT)
+  let dropRate = (baseT - minT) / 15; 
+  tMax = Math.max(minT, baseT - solved * dropRate);
+  tLeft = tMax; locked = false;
+  
   clearInterval(timer);
   timer=setInterval(()=>{tLeft-=0.05;const r=Math.max(0,tLeft/tMax);
     $('fill').style.width=r*100+'%';$('fill').style.background=r<.3?'var(--bad)':'var(--acc)';
@@ -188,12 +201,16 @@ function end(){
   showBest();
 }
 function start(){
+  activeModes = Array.from(document.querySelectorAll('#modes input:checked')).map(cb => cb.value);
+  if(activeModes.length === 0) {
+    alert('請至少勾選一種運算模式喔！');
+    return;
+  }
   score=0;combo=0;lives=3;solved=0;maxCombo=0;hud();
   $('start').classList.add('hide');$('over').classList.add('hide');$('play').classList.remove('hide');
   buildGrid();nextQ();
 }
-$('modes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
-  mode=b.dataset.m;[...$('modes').children].forEach(x=>x.classList.toggle('sel',x===b))});
+
 $('go').onclick=start;
 $('again').onclick=()=>{$('over').classList.add('hide');$('start').classList.remove('hide')};
 </script>
