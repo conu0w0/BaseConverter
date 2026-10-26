@@ -59,12 +59,12 @@ button{font:inherit;color:inherit}
 
 <div id="start" class="card center">
   <div class="rules">
-    題目出現後，將舉著<b>正確答案</b>的地鼠敲下去！敲錯扣心。<br>
-    每 3 連擊隨機獲道具，開局隨機發放 2 個：<br>
+    題目出現後，地鼠會舉著牌子冒出來。<br>只有一隻舉著<b>正確答案</b>，把它敲下去！<br>每 3 連擊獲得隨機道具，敲錯扣心。
     <div class="rules-list">
-      ⏱️ <b>加時</b>：時間增加 8 秒<br>
+      ⏱️ <b>時鐘</b>：時間增加 8 秒<br>
       💣 <b>炸彈</b>：炸掉 1 個錯誤答案<br>
-      ❤️ <b>補血</b>：恢復 1 顆愛心 (上限 3)
+      ❤️ <b>心心</b>：恢復 1 顆愛心 (愛心數量上限 3)<br>
+      🎁 開局會隨機發放 2 個道具 🎁
     </div>
   </div>
   <div class="rules center" style="margin-bottom:4px; font-weight:bold; color:var(--acc);">( 點擊選擇題型，綠色為啟用 )</div>
@@ -248,7 +248,7 @@ function whack(h){
     h.classList.add('ok');
     
     let msgStr = `<span class="good"><b>答對了！</b> +${gain}</span>`;
-    if(combo>0 && combo%3===0) msgStr += ` 🎁獲得 ${dropTool()}！`;
+    if(combo>0 && combo%3===0) msgStr += `<br>🎁獲得 ${dropTool()}！`;
     
     $('msg').innerHTML=msgStr;hud();
     setTimeout(nextQ,800);
