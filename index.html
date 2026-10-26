@@ -16,7 +16,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"N
 h1{font-size:22px;margin:4px 0 12px;text-align:center}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
 .center{text-align:center}
-.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+.modes{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:14px 0}
+.modes button {flex:1 1 30%; min-width:80px;}
+.modes button.wide {flex:1 1 100%;}
 button{font:inherit;color:inherit}
 .btn{background:var(--acc);color:#fff;border:0;border-radius:12px;padding:12px;font-size:17px;cursor:pointer}
 .btn.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
@@ -27,12 +29,12 @@ button{font:inherit;color:inherit}
 .q{font-size:clamp(18px,5vw,26px);text-align:center;font-weight:600;padding:12px 6px;min-height:64px}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 10px;margin-top:14px}
 .hole{position:relative;height:118px;border:0;background:none;padding:0;cursor:pointer;overflow:hidden;border-radius:0 0 40px 40px}
-.mound{position:absolute;left:4%;right:4%;bottom:0;height:34px;background:var(--dirt);border-radius:50%;z-index:1}
+.mound{position:absolute;left:4%;right:4%;bottom:0;height:34px;background:var(--dirt);border-radius:50%;z-index:3}
 .pit{position:absolute;left:8%;right:8%;bottom:12px;height:26px;background:var(--hole);border-radius:50%;z-index:1}
-.mole{position:absolute;left:50%;bottom:22px;width:92%;transform:translate(-50%,130%);visibility:hidden;transition:transform .22s ease-out;z-index:2;display:flex;flex-direction:column-reverse;align-items:center}
-.hole.up .mole{transform:translate(-50%,0);visibility:visible}
+.mole{position:absolute;left:50%;bottom:20px;width:92%;transform:translate(-50%,110%);transition:transform .22s ease-out;z-index:2;display:flex;flex-direction:column;align-items:center}
+.hole.up .mole{transform:translate(-50%,0)}
 .face{font-size:38px;line-height:1}
-.sign{background:var(--board);border:2px solid var(--dirt);border-radius:8px;padding:3px 6px;font-size:clamp(13px,3.6vw,17px);font-weight:600;white-space:nowrap;margin-bottom:-4px;position:relative;z-index:1}
+.sign{background:var(--board);border:2px solid var(--dirt);border-radius:8px;padding:3px 6px;font-size:clamp(13px,3.6vw,17px);font-weight:600;white-space:nowrap;margin-top:-2px}
 .hole.ok .sign{border-color:var(--acc);background:var(--acc);color:#fff}
 .hole.no .sign{border-color:var(--bad);background:var(--bad);color:#fff}
 .hole.ok .mole,.hole.no .mole{animation:hit .25s}
@@ -50,19 +52,20 @@ button{font:inherit;color:inherit}
 <h1>🔨 多項式打地鼠</h1>
 
 <div id="start" class="card center">
-  <div class="rules">題目出現後，地鼠會舉著牌子冒出來。<br>只有一隻舉著<b>正確答案</b>，把它敲下去！<br>初始每題限時 30 秒，答對越多題數，時間越短（最低漸進至 20 秒）。<br>敲錯或超時會扣一顆愛心，3 顆用完就結束。</div>
+  <div class="rules">題目出現後，地鼠會舉著牌子冒出來。<br>只有一隻舉著<b>正確答案</b>，把它敲下去！<br>敲錯或超時會扣一顆愛心，答對越多題目越難。</div>
   <div class="modes" id="modes">
     <button class="btn alt" data-m="add">加法 ＋</button>
     <button class="btn alt" data-m="sub">減法 −</button>
-    
-    <button class="btn alt sel" data-m="mix">加減混合</button>
+    <button class="btn alt" data-m="mul">乘法 ×</button>
+    <button class="btn alt" data-m="div">除法 ÷</button>
+    <button class="btn alt sel wide" data-m="mix">全面混合模式 (＋−×÷)</button>
   </div>
   <button class="btn" id="go" style="width:100%">開始遊戲</button>
   <div class="rules center" id="best"></div>
 </div>
 
 <div id="play" class="card hide">
-  <div class="hud"><span>分數 <b id="sc">0</b></span><span id="cb">連擊 0</span><span id="tm">⏱ 倒數</span><span class="hearts" id="lv">❤❤❤</span></div>
+  <div class="hud"><span>分數 <b id="sc">0</b></span><span id="cb">連擊 0</span><span class="hearts" id="lv">❤❤❤</span></div>
   <div class="bar"><div id="fill"></div></div>
   <div class="q" id="q"></div>
   <div class="grid" id="grid"></div>
@@ -79,8 +82,7 @@ button{font:inherit;color:inherit}
 <script>
 const $=id=>document.getElementById(id);
 const SUP=['','','²','³'];
-const FREEZE=1800;
-let mode='mix',score=0,combo=0,solved=0,locked=true,ans='',tLeft=30,tMax=30,lives=3,timer=null,best=0,maxCombo=0,on=false,pend=null,curHard=false,last=0;
+let mode='mix',score=0,combo=0,lives=3,solved=0,locked=true,ans='',tLeft=0,tMax=10,timer=null,best=0,maxCombo=0;
 try{best=+localStorage.getItem('polymole-best')||0}catch(e){}
 function showBest(){$('best').textContent=best?'最高分：'+best:''}
 showBest();
@@ -98,10 +100,19 @@ function mul(a,b){const r=Array(a.length+b.length-1).fill(0);a.forEach((x,i)=>b.
 
 function makeQ(){
   const lvl=Math.floor(solved/4);
-  const N=solved<4?4:[3,4,4,5,6][rnd(0,4)];
-  let op=mode==='mix'?['add','sub'][rnd(0,1)]:mode;
+  let op=mode==='mix'?['add','sub','mul','div'][rnd(0,3)]:mode;
   let a,b,res,sym,alt=[];
-  if(op==='mul'){
+  
+  if(op==='div'){
+    // 反向產生除法：先決定商式(res)跟除式(b)，再乘起來當被除式(a)
+    b=poly(1); 
+    res=poly(lvl>=3&&Math.random()<.5?2:1);
+    a=mul(res,b);
+    sym='÷';
+    // 錯誤選項：常數項錯、變號錯
+    let w1=res.slice(); w1[0]+=rnd(1,3); alt.push(w1);
+    let w2=res.slice(); w2[w2.length-1]*=-1; alt.push(w2);
+  }else if(op==='mul'){
     a=poly(1);b=poly(lvl>=3&&Math.random()<.5?2:1);
     if(a.length+b.length>5)b=poly(1);
     res=mul(a,b);sym='×';alt.push(add(a,b))
@@ -112,24 +123,22 @@ function makeQ(){
     else{res=add(a,b,-1);sym='−';alt.push(add(a,b));
       const w=a.slice();w[b.length-1]-=b[b.length-1];for(let i=0;i<b.length-1;i++)w[i]+=b[i];alt.push(w)}
   }
+  
   const right=fmt(res),set=new Set([right]),wrong=[];
-  const tryAdd=p=>{const s=fmt(p);if(!set.has(s)&&wrong.length<N-1){set.add(s);wrong.push(s)}};
+  const tryAdd=p=>{const s=fmt(p);if(!set.has(s)&&wrong.length<3){set.add(s);wrong.push(s)}};
   alt.forEach(tryAdd);
   let guard=0;
-  while(wrong.length<N-1&&guard++<300){
+  while(wrong.length<3&&guard++<80){
     const p=res.slice(),i=rnd(0,p.length-1),m=rnd(0,2);
     if(m===0)p[i]=-p[i]||rnd(1,4);else if(m===1)p[i]+=rnd(1,3)*(Math.random()<.5?-1:1);else p[i]+=(p[i]>0?-1:1)*rnd(1,9);
     if(!p[p.length-1])continue;tryAdd(p)
   }
-  return{text:`(${fmt(a)}) ${sym} (${fmt(b)})`,right,opts:[right,...wrong],hard:a.length>2||b.length>2}
+  return{text:`(${fmt(a)}) ${sym} (${fmt(b)})`,right,opts:[right,...wrong]}
 }
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=rnd(0,i);[a[i],a[j]]=[a[j],a[i]]}return a}
-function hud(){
-  $('sc').textContent=score;$('cb').textContent='連擊 '+combo;
-  $('tm').textContent='⏱ 倒數';
-  $('fill').style.width=Math.max(0,tLeft/tMax*100)+'%';$('lv').textContent='❤'.repeat(lives)+'♡'.repeat(3-lives);$('fill').style.background=tLeft/tMax<.3?'var(--bad)':'var(--acc)';
-}
+function hearts(){$('lv').textContent='❤'.repeat(lives)+'♡'.repeat(3-lives)}
+function hud(){$('sc').textContent=score;$('cb').textContent='連擊 '+combo;hearts()}
 
 function buildGrid(){
   const g=$('grid');g.innerHTML='';
@@ -138,63 +147,54 @@ function buildGrid(){
     h.addEventListener('click',()=>whack(h));g.appendChild(h)}
 }
 
-function tick(){
-  const now=performance.now();if(locked){last=now;return}tLeft-=(now-last)/1000;last=now;
-  if(tLeft<=0){tLeft=0;hud();miss('時間到！');return}
-  hud();
-}
-
 function nextQ(){
-  if(!on)return;
-  const q=makeQ();ans=q.right;curHard=q.hard;
-  $('q').textContent=q.text+' = ?';$('msg').innerHTML='';
+  const q=makeQ();ans=q.right;$('q').textContent=q.text+' = ?';$('msg').innerHTML='';
   const holes=[...document.querySelectorAll('.hole')];
-  holes.forEach(h=>{h.className='hole';delete h.dataset.on});
-  const slots=shuffle([0,1,2,3,4,5]).slice(0,q.opts.length),opts=shuffle(q.opts.slice());
+  holes.forEach(h=>{h.className='hole'});
+  const slots=shuffle([0,1,2,3,4,5]).slice(0,4),opts=shuffle(q.opts.slice());
   slots.forEach((s,i)=>{holes[s].querySelector('.sign').textContent=opts[i];holes[s].dataset.v=opts[i];holes[s].dataset.on='1'});
-  setTimeout(()=>{if(on)slots.forEach(s=>holes[s].classList.add('up'))},150);
-  tMax=Math.max(20,30-Math.floor(solved/4)*2);tLeft=tMax;last=performance.now();locked=false;
+  holes.forEach((h,i)=>{if(!slots.includes(i))delete h.dataset.on});
+  setTimeout(()=>slots.forEach(s=>holes[s].classList.add('up')),150);
+  tMax=Math.max(5,12-Math.floor(solved/4)*0.8);tLeft=tMax;locked=false;
+  clearInterval(timer);
+  timer=setInterval(()=>{tLeft-=0.05;const r=Math.max(0,tLeft/tMax);
+    $('fill').style.width=r*100+'%';$('fill').style.background=r<.3?'var(--bad)':'var(--acc)';
+    if(tLeft<=0){clearInterval(timer);miss('時間到！')}},50);
 }
 
-function reveal(){document.querySelectorAll('.hole').forEach(h=>{if(h.dataset.on&&h.dataset.v===ans)h.classList.add('ok')})}
+function reveal(){document.querySelectorAll('.hole').forEach(h=>{if(h.dataset.v===ans)h.classList.add('ok')})}
 
 function whack(h){
-  if(locked||!on||!h.dataset.on)return;
-  locked=true;
+  if(locked||!h.dataset.on)return;
+  locked=true;clearInterval(timer);
   if(h.dataset.v===ans){
     combo++;maxCombo=Math.max(maxCombo,combo);solved++;
-    const gain=10+Math.min(combo-1,10)*2+Math.round(tLeft/tMax*10);score+=gain;
-    h.classList.add('ok');
-    $('msg').innerHTML=`<span class="good"><b>答對了！</b> +${gain} 分</span>`;
-    hud();pend=setTimeout(nextQ,700);
+    const gain=10+Math.min(combo-1,10)*2+Math.round(tLeft);score+=gain;
+    h.classList.add('ok');$('msg').innerHTML=`<span class="good"><b>答對了！</b> +${gain}</span>`;hud();
+    setTimeout(nextQ,800);
   }else{
-    h.classList.add('no');miss('敲錯了！');
+    h.classList.add('no');reveal();miss('敲錯了！',true);
   }
 }
-
-function miss(t){
-  locked=true;combo=0;lives--;reveal();hud();
+function miss(t,already){
+  locked=true;combo=0;lives--;if(!already)reveal();hud();
   $('msg').innerHTML=`<span class="badc"><b>${t}</b></span> 正確答案是 <b>${ans}</b>`;
-  if(lives<=0)pend=setTimeout(end,FREEZE);else pend=setTimeout(nextQ,FREEZE);
+  if(lives<=0)setTimeout(end,1800);else setTimeout(nextQ,1800);
 }
 function end(){
-  if(!on)return;
-  on=false;locked=true;clearInterval(timer);clearTimeout(pend);
   $('play').classList.add('hide');$('over').classList.remove('hide');
   const nb=score>best;if(nb){best=score;try{localStorage.setItem('polymole-best',best)}catch(e){}}
   $('res').innerHTML=`得分 <b>${score}</b>${nb?' 🎉 新紀錄！':''}<br>答對 ${solved} 題 · 最高連擊 ${maxCombo}`;
   showBest();
 }
-
 function start(){
-  clearInterval(timer);clearTimeout(pend);
-  score=0;combo=0;solved=0;maxCombo=0;lives=3;tLeft=30;tMax=30;on=true;hud();
+  score=0;combo=0;lives=3;solved=0;maxCombo=0;hud();
   $('start').classList.add('hide');$('over').classList.add('hide');$('play').classList.remove('hide');
   buildGrid();nextQ();
-  last=performance.now();timer=setInterval(tick,100);
 }
 $('modes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
-  mode=b.dataset.m;[...$('modes').children].forEach(x=>x.classList.toggle('sel',x===b))});$('go').onclick=start;
+  mode=b.dataset.m;[...$('modes').children].forEach(x=>x.classList.toggle('sel',x===b))});
+$('go').onclick=start;
 $('again').onclick=()=>{$('over').classList.add('hide');$('start').classList.remove('hide')};
 </script>
 </body>
