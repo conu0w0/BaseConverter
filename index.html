@@ -25,6 +25,9 @@ button{font:inherit;color:inherit}
 .btn{background:var(--acc);color:#fff;border:0;border-radius:12px;padding:12px;font-size:17px;font-weight:600;cursor:pointer;transition:opacity .2s;}
 .btn:active{opacity:.8}
 .hud{display:flex;justify-content:space-between;font-size:15px;margin-bottom:8px}
+.tools{display:flex;justify-content:center;gap:10px;margin-bottom:12px}
+.tool-btn{background:var(--board);border:2px solid var(--line);border-radius:8px;padding:6px 12px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px}
+.tool-btn[disabled]{opacity:0.4;cursor:not-allowed}
 .bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-bottom:10px}
 #fill{height:100%;width:100%;background:var(--acc);transition:background .2s}
 .q{font-size:clamp(18px,5vw,26px);text-align:center;font-weight:600;padding:12px 6px;min-height:64px}
@@ -46,6 +49,7 @@ button{font:inherit;color:inherit}
 .hearts{letter-spacing:2px}
 .hide{display:none}
 .rules{font-size:14px;color:var(--mute);line-height:1.7;text-align:center;margin:10px 0}
+.tool-box{background:var(--board);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:14px;font-size:13.5px}
 </style>
 </head>
 <body>
@@ -54,9 +58,15 @@ button{font:inherit;color:inherit}
 
 <div id="start" class="card center">
   <div class="rules">題目出現後，地鼠會舉著牌子冒出來。<br>只有一隻舉著<b>正確答案</b>，把它敲下去！<br>敲錯或超時會扣心，答對越多題目越難。</div>
+  
+  <div class="tool-box rules">
+    <div style="font-weight:600; color:var(--ink); margin-bottom:4px">🌟 道具系統 (開局贈送 2 個隨機道具)</div>
+    ⏱️ <b>時鐘</b> (加8秒) | 💣 <b>炸彈</b> (刪1錯項) | ❤️ <b>藥水</b> (補1血)<br>
+    <span style="color:var(--acc)">每連續答對 3 題，可隨機獲得一個道具！</span>
+  </div>
+
   <div class="rules center" style="margin-bottom:4px; font-weight:bold; color:var(--acc);">( 點擊選擇題型，綠色為啟用 )</div>
   <div class="modes" id="modes">
-    <!-- 預設全部取消勾選 -->
     <label class="ck-btn"><input type="checkbox" value="add"><span>加法 ＋</span></label>
     <label class="ck-btn"><input type="checkbox" value="sub"><span>減法 −</span></label>
     <label class="ck-btn"><input type="checkbox" value="mul"><span>乘法 ×</span></label>
@@ -68,6 +78,11 @@ button{font:inherit;color:inherit}
 
 <div id="play" class="card hide">
   <div class="hud"><span>分數 <b id="sc">0</b></span><span id="cb">連擊 0</span><span class="hearts" id="lv">❤❤❤</span></div>
+  <div class="tools">
+    <button class="tool-btn" id="t-time" onclick="useTool('time')" disabled>⏱️ <span id="n-time">0</span></button>
+    <button class="tool-btn" id="t-bomb" onclick="useTool('bomb')" disabled>💣 <span id="n-bomb">0</span></button>
+    <button class="tool-btn" id="t-heal" onclick="useTool('heal')" disabled>❤️ <span id="n-heal">0</span></button>
+  </div>
   <div class="bar"><div id="fill"></div></div>
   <div class="q" id="q"></div>
   <div class="grid" id="grid"></div>
@@ -85,6 +100,8 @@ button{font:inherit;color:inherit}
 const $=id=>document.getElementById(id);
 const SUP=['','','²','³'];
 let activeModes=[],score=0,combo=0,lives=3,solved=0,locked=true,ans='',tLeft=0,tMax=10,timer=null,best=0,maxCombo=0;
+let tools = { time: 0, bomb: 0, heal: 0 };
+
 try{best=+localStorage.getItem('polymole-best')||0}catch(e){}
 function showBest(){$('best').textContent=best?'最高分：'+best:''}
 showBest();
@@ -104,19 +121,10 @@ function makeQ(){
   const lvl=Math.floor(solved/4);
   let op=activeModes[rnd(0,activeModes.length-1)];
   let a,b,res,sym,alt=[];
-  
-  // 動態決定選項數量
-  let targetOpts = 2;
-  if (solved < 3) targetOpts = 2;       // 前3題：2選1
-  else if (solved < 7) targetOpts = 3;  // 第4~7題：3選1
-  else if (solved < 12) targetOpts = 4; // 第8~12題：4選1
-  else targetOpts = rnd(3, 6);          // 之後：3~6個選項隨機出
+  let targetOpts = solved<3?2:solved<7?3:solved<12?4:rnd(3,6);
   
   if(op==='div'){
-    b=poly(1); 
-    res=poly(lvl>=3&&Math.random()<.5?2:1);
-    a=mul(res,b);
-    sym='÷';
+    b=poly(1); res=poly(lvl>=3&&Math.random()<.5?2:1); a=mul(res,b); sym='÷';
     let w1=res.slice(); w1[0]+=rnd(1,3); alt.push(w1);
     let w2=res.slice(); w2[w2.length-1]*=-1; alt.push(w2);
   }else if(op==='mul'){
@@ -132,7 +140,6 @@ function makeQ(){
   }
   
   const right=fmt(res),set=new Set([right]),wrong=[];
-  // 嘗試塞入錯誤選項直到數量達成
   const tryAdd=p=>{const s=fmt(p);if(!set.has(s)&&wrong.length<targetOpts-1){set.add(s);wrong.push(s)}};
   alt.forEach(tryAdd);
   let guard=0;
@@ -145,8 +152,58 @@ function makeQ(){
 }
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=rnd(0,i);[a[i],a[j]]=[a[j],a[i]]}return a}
+
+// 新的道具隨機抽選機制：愛心 15%，炸彈 35%，時鐘 50%
+function getRandomToolName() {
+  const r = Math.random() * 100;
+  if (r < 15) return 'heal';
+  if (r < 50) return 'bomb';
+  return 'time';
+}
+
+function updateTools(){
+  ['time','bomb','heal'].forEach(k=>{
+    $('n-'+k).textContent = tools[k];
+    $('t-'+k).disabled = (tools[k] <= 0);
+  });
+  if(lives>=3) $('t-heal').disabled = true; 
+}
+
+function dropTool(){
+  const got = getRandomToolName();
+  tools[got]++;
+  updateTools();
+  return got==='time'?'⏱️時鐘':got==='bomb'?'💣炸彈':'❤️藥水';
+}
+
+function useTool(type){
+  if(tools[type]<=0 || locked) return;
+  
+  if(type==='heal'){
+    if(lives>=3) return;
+    tools.heal--; lives++;
+    $('msg').innerHTML=`<span class="good"><b>恢復 1 顆愛心！</b></span>`;
+  }
+  else if(type==='time'){
+    tools.time--;
+    tLeft+=8; tMax+=8;
+    $('msg').innerHTML=`<span class="good"><b>時間增加 8 秒！</b></span>`;
+  }
+  else if(type==='bomb'){
+    const wrongs = [...document.querySelectorAll('.hole.up')].filter(h=>h.dataset.v!==ans && !h.classList.contains('no') && h.dataset.on);
+    if(wrongs.length===0) return; 
+    tools.bomb--;
+    const target = wrongs[rnd(0, wrongs.length-1)];
+    target.classList.add('no');
+    delete target.dataset.on;
+    setTimeout(()=>target.classList.remove('up'), 300);
+    $('msg').innerHTML=`<span class="good"><b>炸掉一個錯誤答案！</b></span>`;
+  }
+  updateTools(); hud();
+}
+
 function hearts(){$('lv').textContent='❤'.repeat(lives)+'♡'.repeat(3-lives)}
-function hud(){$('sc').textContent=score;$('cb').textContent='連擊 '+combo;hearts()}
+function hud(){$('sc').textContent=score;$('cb').textContent='連擊 '+combo;hearts();updateTools();}
 
 function buildGrid(){
   const g=$('grid');g.innerHTML='';
@@ -159,22 +216,15 @@ function nextQ(){
   const q=makeQ();ans=q.right;$('q').textContent=q.text+' = ?';$('msg').innerHTML='';
   const holes=[...document.querySelectorAll('.hole')];
   holes.forEach(h=>{h.className='hole'});
-  
-  // 取出與題目選項等量的坑洞
-  const actualOpts = q.opts.length;
-  const slots=shuffle([0,1,2,3,4,5]).slice(0, actualOpts),opts=shuffle(q.opts.slice());
+  const slots=shuffle([0,1,2,3,4,5]).slice(0, q.opts.length),opts=shuffle(q.opts.slice());
   
   slots.forEach((s,i)=>{holes[s].querySelector('.sign').textContent=opts[i];holes[s].dataset.v=opts[i];holes[s].dataset.on='1'});
   holes.forEach((h,i)=>{if(!slots.includes(i))delete h.dataset.on});
   setTimeout(()=>slots.forEach(s=>holes[s].classList.add('up')),150);
   
-  // 根據不同運算模式設定起始時間(baseT)與最低時間(minT)
   let baseT = 20, minT = 10; 
-  if (q.op === 'mul') {
-    baseT = 30; minT = 20;   
-  } else if (q.op === 'div') {
-    baseT = 60; minT = 40;   
-  }
+  if (q.op === 'mul') { baseT = 30; minT = 20; } 
+  else if (q.op === 'div') { baseT = 60; minT = 40; }
   let dropRate = (baseT - minT) / 15; 
   tMax = Math.max(minT, baseT - solved * dropRate);
   
@@ -190,13 +240,20 @@ function reveal(){document.querySelectorAll('.hole').forEach(h=>{if(h.dataset.v=
 
 function whack(h){
   if(locked||!h.dataset.on)return;
-  locked=true;clearInterval(timer);
+  
   if(h.dataset.v===ans){
+    locked=true;clearInterval(timer);
     combo++;maxCombo=Math.max(maxCombo,combo);solved++;
     const gain=10+Math.min(combo-1,10)*2+Math.round(tLeft);score+=gain;
-    h.classList.add('ok');$('msg').innerHTML=`<span class="good"><b>答對了！</b> +${gain}</span>`;hud();
+    h.classList.add('ok');
+    
+    let msgStr = `<span class="good"><b>答對了！</b> +${gain}</span>`;
+    if(combo>0 && combo%3===0) msgStr += ` <br>🎁 獲得 ${dropTool()}！`;
+    
+    $('msg').innerHTML=msgStr;hud();
     setTimeout(nextQ,800);
   }else{
+    locked=true;clearInterval(timer);
     h.classList.add('no');reveal();miss('敲錯了！',true);
   }
 }
@@ -213,11 +270,16 @@ function end(){
 }
 function start(){
   activeModes = Array.from(document.querySelectorAll('#modes input:checked')).map(cb => cb.value);
-  if(activeModes.length === 0) {
-    alert('請至少勾選一種運算模式喔！');
-    return;
-  }
-  score=0;combo=0;lives=3;solved=0;maxCombo=0;hud();
+  if(activeModes.length === 0) { alert('請至少勾選一種運算模式喔！'); return; }
+  
+  score=0;combo=0;lives=3;solved=0;maxCombo=0;
+  
+  // 開局贈送 2 個隨機道具
+  tools = { time: 0, bomb: 0, heal: 0 };
+  tools[getRandomToolName()]++;
+  tools[getRandomToolName()]++;
+  
+  hud();
   $('start').classList.add('hide');$('over').classList.add('hide');$('play').classList.remove('hide');
   buildGrid();nextQ();
 }
