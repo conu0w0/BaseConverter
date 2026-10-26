@@ -25,7 +25,7 @@ button{font:inherit;color:inherit}
 .btn{background:var(--acc);color:#fff;border:0;border-radius:12px;padding:12px;font-size:17px;font-weight:600;cursor:pointer;transition:opacity .2s;}
 .btn:active{opacity:.8}
 .hud{display:flex;justify-content:space-between;font-size:15px;margin-bottom:8px}
-.tools{display:flex;justify-content:center;gap:10px;margin-bottom:12px}
+.tools{display:flex;justify-content:center;gap:10px;margin:16px 0 12px}
 .tool-btn{background:var(--board);border:2px solid var(--line);border-radius:8px;padding:6px 12px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px}
 .tool-btn[disabled]{opacity:0.4;cursor:not-allowed}
 .bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-bottom:10px}
@@ -49,7 +49,6 @@ button{font:inherit;color:inherit}
 .hearts{letter-spacing:2px}
 .hide{display:none}
 .rules{font-size:14px;color:var(--mute);line-height:1.7;text-align:center;margin:10px 0}
-.tool-box{background:var(--board);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:14px;font-size:13.5px}
 </style>
 </head>
 <body>
@@ -57,14 +56,11 @@ button{font:inherit;color:inherit}
 <h1 class="center">🔨 多項式打地鼠</h1>
 
 <div id="start" class="card center">
-  <div class="rules">題目出現後，地鼠會舉著牌子冒出來。<br>只有一隻舉著<b>正確答案</b>，把它敲下去！<br>敲錯或超時會扣心，答對越多題目越難。</div>
-  
-  <div class="tool-box rules">
-    <div style="font-weight:600; color:var(--ink); margin-bottom:4px">🌟 道具系統 (開局贈送 2 個隨機道具)</div>
-    ⏱️ <b>時鐘</b> (加8秒) | 💣 <b>炸彈</b> (刪1錯項) | ❤️ <b>藥水</b> (補1血)<br>
-    <span style="color:var(--acc)">每連續答對 3 題，可隨機獲得一個道具！</span>
+  <div class="rules">
+    題目出現後，將舉著<b>正確答案</b>的地鼠敲下去！敲錯扣心。<br>
+    每 3 連擊隨機獲道具 (⏱️時間50% / 💣炸彈35% / ❤️補血15%)。<br>
+    🎁 開局會隨機發放 2 個道具供使用。
   </div>
-
   <div class="rules center" style="margin-bottom:4px; font-weight:bold; color:var(--acc);">( 點擊選擇題型，綠色為啟用 )</div>
   <div class="modes" id="modes">
     <label class="ck-btn"><input type="checkbox" value="add"><span>加法 ＋</span></label>
@@ -78,14 +74,14 @@ button{font:inherit;color:inherit}
 
 <div id="play" class="card hide">
   <div class="hud"><span>分數 <b id="sc">0</b></span><span id="cb">連擊 0</span><span class="hearts" id="lv">❤❤❤</span></div>
+  <div class="bar"><div id="fill"></div></div>
+  <div class="q" id="q"></div>
+  <div class="grid" id="grid"></div>
   <div class="tools">
     <button class="tool-btn" id="t-time" onclick="useTool('time')" disabled>⏱️ <span id="n-time">0</span></button>
     <button class="tool-btn" id="t-bomb" onclick="useTool('bomb')" disabled>💣 <span id="n-bomb">0</span></button>
     <button class="tool-btn" id="t-heal" onclick="useTool('heal')" disabled>❤️ <span id="n-heal">0</span></button>
   </div>
-  <div class="bar"><div id="fill"></div></div>
-  <div class="q" id="q"></div>
-  <div class="grid" id="grid"></div>
   <div class="msg" id="msg"></div>
 </div>
 
@@ -153,12 +149,11 @@ function makeQ(){
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=rnd(0,i);[a[i],a[j]]=[a[j],a[i]]}return a}
 
-// 新的道具隨機抽選機制：愛心 15%，炸彈 35%，時鐘 50%
-function getRandomToolName() {
-  const r = Math.random() * 100;
-  if (r < 15) return 'heal';
-  if (r < 50) return 'bomb';
-  return 'time';
+function getRanTool(){
+  const r = rnd(1, 100);
+  if(r <= 50) return 'time';
+  if(r <= 85) return 'bomb';
+  return 'heal';
 }
 
 function updateTools(){
@@ -168,9 +163,8 @@ function updateTools(){
   });
   if(lives>=3) $('t-heal').disabled = true; 
 }
-
 function dropTool(){
-  const got = getRandomToolName();
+  const got = getRanTool();
   tools[got]++;
   updateTools();
   return got==='time'?'⏱️時鐘':got==='bomb'?'💣炸彈':'❤️藥水';
@@ -248,7 +242,7 @@ function whack(h){
     h.classList.add('ok');
     
     let msgStr = `<span class="good"><b>答對了！</b> +${gain}</span>`;
-    if(combo>0 && combo%3===0) msgStr += ` <br>🎁 獲得 ${dropTool()}！`;
+    if(combo>0 && combo%3===0) msgStr += ` 🎁獲得 ${dropTool()}！`;
     
     $('msg').innerHTML=msgStr;hud();
     setTimeout(nextQ,800);
@@ -273,11 +267,11 @@ function start(){
   if(activeModes.length === 0) { alert('請至少勾選一種運算模式喔！'); return; }
   
   score=0;combo=0;lives=3;solved=0;maxCombo=0;
-  
-  // 開局贈送 2 個隨機道具
   tools = { time: 0, bomb: 0, heal: 0 };
-  tools[getRandomToolName()]++;
-  tools[getRandomToolName()]++;
+  
+  // 開局隨機送 2 個道具
+  tools[getRanTool()]++;
+  tools[getRanTool()]++;
   
   hud();
   $('start').classList.add('hide');$('over').classList.add('hide');$('play').classList.remove('hide');
