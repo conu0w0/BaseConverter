@@ -25,8 +25,9 @@ button{font:inherit;color:inherit}
 .btn{background:var(--acc);color:#fff;border:0;border-radius:12px;padding:12px;font-size:17px;font-weight:600;cursor:pointer;transition:opacity .2s;}
 .btn:active{opacity:.8}
 .hud{display:flex;justify-content:space-between;font-size:15px;margin-bottom:8px}
-.tools{display:flex;justify-content:center;gap:10px;margin:16px 0 12px}
-.tool-btn{background:var(--board);border:2px solid var(--line);border-radius:8px;padding:6px 12px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px}
+.tools{display:flex;justify-content:center;gap:14px;margin:16px 0 12px}
+.tool-btn{background:var(--board);border:2px solid var(--line);border-radius:10px;padding:10px 16px;font-size:22px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px}
+.tool-btn span{font-size:18px}
 .tool-btn[disabled]{opacity:0.4;cursor:not-allowed}
 .bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-bottom:10px}
 #fill{height:100%;width:100%;background:var(--acc);transition:background .2s}
@@ -49,6 +50,7 @@ button{font:inherit;color:inherit}
 .hearts{letter-spacing:2px}
 .hide{display:none}
 .rules{font-size:14px;color:var(--mute);line-height:1.7;text-align:center;margin:10px 0}
+.rules-list{text-align:left;display:inline-block;margin-top:8px;background:var(--board);padding:10px 16px;border-radius:8px;border:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -58,8 +60,12 @@ button{font:inherit;color:inherit}
 <div id="start" class="card center">
   <div class="rules">
     題目出現後，將舉著<b>正確答案</b>的地鼠敲下去！敲錯扣心。<br>
-    每 3 連擊隨機獲道具 (⏱️時間50% / 💣炸彈35% / ❤️補血15%)。<br>
-    🎁 開局會隨機發放 2 個道具供使用。
+    每 3 連擊隨機獲道具，開局隨機發放 2 個：<br>
+    <div class="rules-list">
+      ⏱️ <b>加時</b>：時間增加 8 秒<br>
+      💣 <b>炸彈</b>：炸掉 1 個錯誤答案<br>
+      ❤️ <b>補血</b>：恢復 1 顆愛心 (上限 3)
+    </div>
   </div>
   <div class="rules center" style="margin-bottom:4px; font-weight:bold; color:var(--acc);">( 點擊選擇題型，綠色為啟用 )</div>
   <div class="modes" id="modes">
@@ -269,7 +275,6 @@ function start(){
   score=0;combo=0;lives=3;solved=0;maxCombo=0;
   tools = { time: 0, bomb: 0, heal: 0 };
   
-  // 開局隨機送 2 個道具
   tools[getRanTool()]++;
   tools[getRanTool()]++;
   
